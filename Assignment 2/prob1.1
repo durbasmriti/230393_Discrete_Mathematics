@@ -1,0 +1,66 @@
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+#define KEYWORD 1
+#define OPERATOR 2
+#define IDENTIFIER 3
+#define STRING 4
+#define DELIMITER 5
+#define INTEGER 6
+#define FLOATING_POINT 7
+#define HEXADECIMAL 8
+
+
+void yyerror(const char *msg);
+%}
+
+%x STRING_SINGLE STRING_DOUBLE
+
+%%
+
+"ARRAY"|"BEGIN"|"BOOLEAN"|"COMMENT"|"CONTINUE"|"DO"|"DOUBLE"|"ELSE"|"END"|"FALSE"|"FOR"|"IF"|"INTEGER"|"LABEL"|"LIST"|"LONG"|"OWN"|"PROCEDURE"|"STEP"|"SWITCH"|"THEN"|"TRUE"|"UNTIL"|"VALUE"|"WHILE"  { return KEYWORD; }
+
+"AND"|"OR"|"LEQ"|"GT"|"LT"|"GEQ"|"NOT"|"EQL"|"NEQ"|":="|[+\-*/%^|&]|<<|>>|<=|>= { return OPERATOR; }
+
+[a-zA-Z][a-zA-Z0-9]*   { return IDENTIFIER; }
+
+\"([^\"\n]|\\\")*\"    { return STRING; }
+\'([^\'\n]|\\\')*\'    { return STRING; }
+
+\"([^\"\n]*\n)*[^\"]*$ { yyerror("Unterminated string"); }
+\'([^\'\n]*\n)*[^\']*$ { yyerror("Unterminated string"); }
+
+\{[^}]*\}              { /* ignore comments */ }
+
+[ \t\r\n]+             { /* ignore whitespace */ }
+
+[0-9]+                 { return INTEGER; }
+[0-9]*\.[0-9]+         { return FLOATING_POINT; }
+0[xX][0-9a-fA-F]+      { return HEXADECIMAL; }
+
+['[{}():;,]']          { return DELIMITER; }
+
+
+.                      { yyerror("Illegal character"); }
+
+%%
+
+void yyerror(const char *msg) {
+    fprintf(stderr, "Error at line %d: %s\n", msg);
+}
+
+int main(int argc, char **argv) {
+    if (argc > 1) {
+        FILE *file = fopen(argv[1], "r");
+        if (!file) {
+            perror("fopen");
+            exit(EXIT_FAILURE);
+        }
+        yyin = file;
+    }
+    yylex();
+    return 0;
+}
+
+
